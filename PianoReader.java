@@ -3,7 +3,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,11 +24,12 @@ import javax.swing.ButtonModel;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLayeredPane;
+import javax.swing.JOptionPane;
 import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-public class Piano extends JFrame implements ActionListener, Synthesizer
+public class PianoReader extends JFrame implements ActionListener, Synthesizer
 {
 	final MidiChannel[] mc;
 	final int wKeyWidth = 75;
@@ -33,62 +37,76 @@ public class Piano extends JFrame implements ActionListener, Synthesizer
 	
 	private ArrayList<PianoKeys2> piano;
 	private static ArrayList<String> names = new ArrayList<String>();
+	private ArrayList<Note> listOfNotes;
+	private ArrayList<Note> listOfNotes2;
+	private ArrayList<Note> listOfNotes3;
 	private String[] keyNotations = {"C", "C#/Db", "D", "D#/Eb", "E", "F", "F#/Gb", "G", "G#/Ab", "A", "A#/Bb", 
 	"B"};
 	private Instrument[] instr;
 	
 	private int xPosition = 0;
 	private int octaves = 4;
+	private int iterator = 0;	
+	private int currentNote = 20;
 
 	private boolean currentlyPressed = false;
 	
 	private ButtonModel model;
+	private FileWriter writer = null;
 	private PianoKeys2 pressedNote = null;
 	
 	private int instrumentNum;
 	private int volume;
+	private String titleName = "";
 	
-	public Piano(int inst, int loudness) throws MidiUnavailableException
+	private long startTime = System.currentTimeMillis();
+	private long endTime = System.currentTimeMillis();
+	
+	private final Color PRESSED_COLOR = new Color(184, 207, 229);
+		
+	public PianoReader(int inst, int loudness, String titleName, ArrayList<Note> notes,
+			ArrayList<Note> notes2, ArrayList<Note> notes3) throws MidiUnavailableException, IOException
 	{
 		this.setBounds(100,100,wKeyWidth*7*octaves,500);
 		this.setLayout(null);
 		this.setTitle("Piano");
 		this.setResizable(true);
+
+		try
+		{
+			writer = new FileWriter("Recorded_notes.txt");
+		}
+	    catch (IOException e) 
+	    {
+	        System.out.println("Looks like an error has been detected.");
+	        e.printStackTrace();
+	    }
+		
 		
 		instrumentNum = inst;
 		volume = loudness;
-		
-		
-	       
+		this.titleName = titleName;
+		listOfNotes = notes;
+		listOfNotes2 = notes2;
+		listOfNotes3 = notes3;
+		      
 	    Synthesizer synth = MidiSystem.getSynthesizer();
-	    synth.open();
-	       
-	    mc = synth.getChannels();
-	    
+	    synth.open();       
+	    mc = synth.getChannels();	    
 	    instr = synth.getDefaultSoundbank().getInstruments();
-	    synth.loadInstrument(instr[0]);
-	       
+	    synth.loadInstrument(instr[0]);	       
 	    mc[5].programChange(instr[instrumentNum].getPatch().getProgram());
-	       
+	    int iter = 0;
 		
-		Timer t1 = new Timer(10	,this);
+		Timer t1 = new Timer(25	,this);
 		t1.start();
+		
 		JLayeredPane panel = new JLayeredPane();
 		panel.setLayout(null);
-		panel.setBounds(0,0,wKeyWidth*7*octaves,500);
+		panel.setBounds(0,0,wKeyWidth*7*octaves,500);		
 		
-	    int iter = 0;
-        for(Instrument i : instr)
-        {       
-        	System.out.println(iter + ". " + i.getName());
-        	names.add(i.getName());
-        	iter++;
-        }
-			
 		piano = new ArrayList<PianoKeys2>();
 		
-
-		//Option II: Constructing all Keys in Order (Still WIP- the spacing of black keys is slightly off)
 		for(int key = 0; key < octaves * 12; key++)
 		{
 			if(key % 12 < 5)
@@ -140,6 +158,7 @@ public class Piano extends JFrame implements ActionListener, Synthesizer
 			PianoKeys2 key = piano.get(i);
 			key.getModel().addChangeListener(new BtnModelListener());
 			
+			
 			if(key.getKeyType().equals("White"))
 			{
 				key.setBackground(Color.WHITE);
@@ -157,9 +176,6 @@ public class Piano extends JFrame implements ActionListener, Synthesizer
 		
 		this.setDefaultCloseOperation(this.EXIT_ON_CLOSE);
 		this.setVisible(true);
-		
-		
-		
 	}
 	
 	private class BtnModelListener implements ChangeListener
@@ -180,48 +196,99 @@ public class Piano extends JFrame implements ActionListener, Synthesizer
 	    }
 	}
 	@Override
+	
+
 	public void actionPerformed(ActionEvent arg0) 
 	{
-		boolean changeNote = false;
-		for(int note = 0; note < piano.size(); note++)
-		{
-			ButtonModel model = piano.get(note).getModel();
-			model.addChangeListener(new BtnModelListener());
+		for(int i = 0; i < listOfNotes.size(); i++)
+		{				
+			int keyNum = listOfNotes.get(i).getKeyNum();
+			int pressTime = (int)(listOfNotes.get(i).getTimeHeld());
+			int savedKey = 0;
+			int keyNum2 = 0;
+			int pressTime2 = 0;
+			int keyNum3 = 0;
+			int pressTime3 = 0;
 			
-			if(pressedNote != null)
+			if(listOfNotes2.size() != 0 || listOfNotes3.size() != 0)
 			{
-				model = pressedNote.getModel();
-				model.addChangeListener(new BtnModelListener());
-				changeNote = true;
-			}
-			
-			if(model.isPressed())
-			{
-				if(!changeNote)
-					pressedNote = piano.get(note);
+				keyNum2 = listOfNotes2.get(i).getKeyNum();
+				pressTime2 = (int)(listOfNotes2.get(i).getTimeHeld());
 				
-				if(currentlyPressed)
-				{
-					currentlyPressed = false;
-					mc[5].noteOn(note + 36,volume);
-					System.out.println(note);
-	
-				}			
-
+				keyNum3 = listOfNotes3.get(i).getKeyNum();
+				pressTime3 = (int)(listOfNotes3.get(i).getTimeHeld());
 			}
-			else if(!model.isPressed())
-			{
-				if(!currentlyPressed)
+			
+			int j = 0;
+			boolean clicked = false;
+			//piano.get(keyNum).doClick();
+			
+//			if(listOfNotes2.size() != 0 && !listOfNotes2.get(i).checkIfRest())
+//			{
+//				mc[2].noteOn(keyNum2 + 36, volume);
+//			}
+//			if(listOfNotes3.size() != 0 && !listOfNotes3.get(i).checkIfRest())
+//			{
+//				mc[3].noteOn(keyNum3 + 36, volume);
+//			}
+//			
+			startTime = System.currentTimeMillis();
+			
+			while((int)(endTime-startTime) < pressTime)
+			{		
+				if(!clicked)
 				{
-					currentlyPressed = true;
-					pressedNote = null;
-				}			
-				mc[5].noteOff(note + 36, 0);
-
-
+					if(!listOfNotes.get(i).checkIfRest())
+					{
+						mc[5].noteOn(keyNum + 36, volume);
+						clicked = true;	
+						piano.get(keyNum).doClick();						
+					}
+					else
+					{
+						mc[5].noteOn(keyNum + 36, 0);
+						clicked = true;			
+					}
+					if(listOfNotes2.size() != 0 || listOfNotes3.size() != 0)
+					{
+						if(!listOfNotes2.get(i).checkIfRest())
+						{
+							mc[5].noteOn(keyNum2 + 36, volume);
+							clicked = true;	
+							piano.get(keyNum).doClick();						
+						}
+						else
+						{
+							mc[5].noteOn(keyNum2 + 36, 0);
+							clicked = true;			
+						}
+						if(!listOfNotes3.get(i).checkIfRest())
+						{
+							mc[5].noteOn(keyNum3 + 36, volume);
+							clicked = true;	
+							piano.get(keyNum).doClick();						
+						}
+						else
+						{
+							mc[5].noteOn(keyNum3 + 36, 0);
+							clicked = true;			
+						}
+						
+					}
+				}
+				
+				endTime = System.currentTimeMillis();
+				
 			}
-		
+			clicked = false;
+			mc[5].noteOff(keyNum + 36, 0);
+			
+
+			
 		}
+		System.exit(0);
+		
+		
 		
 	}
 	public ArrayList<String> getNames()

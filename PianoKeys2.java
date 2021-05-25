@@ -60,4 +60,3 @@ public class PianoKeys2 extends JButton
 		return blackKeySize.width;
 	}
 }
-

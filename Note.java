@@ -1,13 +1,15 @@
-
 public class Note 
 {
 	private int keyNum;
 	private double tHeld;
+	private boolean isRest;
 	
-	public Note(int key, double timeHeld)
+	public Note(int key, double timeHeld, boolean resting)
 	{
 		this.keyNum = key;
 		this.tHeld = timeHeld;
+		isRest = resting;
+		
 	}
 	
 	public int getKeyNum()
@@ -23,5 +25,9 @@ public class Note
 	public void setTimeHeld(double duration)
 	{
 		tHeld = duration;
+	}
+	public boolean checkIfRest()
+	{
+		return isRest;
 	}
 }
