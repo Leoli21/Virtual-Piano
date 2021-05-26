@@ -1,3 +1,3 @@
 # Virtual Piano Code
-Team Leader: Isaac Hu
-Participants: Leo Li and Vincent Yang
+Created by Isaac Hu, Leo Li, and Vincent Yang
+
