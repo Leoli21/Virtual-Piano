@@ -28,6 +28,7 @@ import javax.swing.event.ChangeListener;
 public class Piano extends JFrame implements ActionListener, Synthesizer
 {
 	final MidiChannel[] mc;
+	final int wKeyHeight = 500;
 	final int wKeyWidth = 75;
 	final int bKeyWidth = 45;
 	
@@ -50,7 +51,7 @@ public class Piano extends JFrame implements ActionListener, Synthesizer
 	
 	public Piano(int inst, int loudness) throws MidiUnavailableException
 	{
-		this.setBounds(100,100,wKeyWidth*7*octaves,500);
+		this.setBounds(100,100,wKeyWidth*7*octaves+20,wKeyHeight+45);
 		this.setLayout(null);
 		this.setTitle("Piano");
 		this.setResizable(true);
@@ -91,7 +92,7 @@ public class Piano extends JFrame implements ActionListener, Synthesizer
 		//Option II: Constructing all Keys in Order (Still WIP- the spacing of black keys is slightly off)
 		for(int key = 0; key < octaves * 12; key++)
 		{
-			if(key % 12 < 5)
+			if(key % 12 < 5) //First Half of Octave (5 Keys: 3 white + 2 black)
 			{
 				if((key % 12) % 2 == 0) //Add white key to piano
 				{
@@ -99,6 +100,10 @@ public class Piano extends JFrame implements ActionListener, Synthesizer
 					if(key % 12 == 4)
 					{
 						xPosition+=wKeyWidth;
+					}
+					else if(key% 12 == 2)
+					{
+						xPosition += (wKeyWidth-15);
 					}
 					else
 					{
@@ -108,27 +113,54 @@ public class Piano extends JFrame implements ActionListener, Synthesizer
 				else //Add black key to piano
 				{
 					piano.add(new PianoKeys2("Black", keyNotations[key%12], xPosition));
-					xPosition+=(wKeyWidth-bKeyWidth);
+					if(key % 12 == 3)
+					{
+						xPosition += 15;
+					}
+					else 
+					{
+						xPosition+=(wKeyWidth-bKeyWidth);
+					}
+					
 				}
 			}
-			else
+			else //Second Half of Octave (7 Keys: 4 white + 3 black)
 			{
-				if((key % 12) % 2 == 1)
+				if((key % 12) % 2 == 1) //Add White key
 				{
 					piano.add(new PianoKeys2("White", keyNotations[key%12] , xPosition));
 					if(key % 12 == 11)
 					{
 						xPosition +=wKeyWidth;
 					}
+					else if(key % 12 == 7)
+					{
+						xPosition += (wKeyWidth - (bKeyWidth/2));
+					}
+					else if(key % 12 == 9)
+					{
+						xPosition += 60;
+					}
 					else
 					{
 						xPosition+=bKeyWidth;
 					}
 				}
-				else
+				else //Add Black Key
 				{
 					piano.add(new PianoKeys2("Black", keyNotations[key%12], xPosition));
-					xPosition+=(wKeyWidth-bKeyWidth);
+					if(key%12 == 8)
+					{
+						xPosition += (bKeyWidth/2);
+					}
+					else if(key%12 == 10)
+					{
+						xPosition += 15;
+					}
+					else
+					{
+						xPosition+=(wKeyWidth-bKeyWidth);
+					}
 				}
 			}
 		}
